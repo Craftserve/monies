@@ -1,3 +1,2 @@
 test:
 	go test -v ./...
-	gopherbadger -md="README.md"
