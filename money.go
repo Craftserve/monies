@@ -20,7 +20,7 @@ var (
 	MarshalJSON = defaultMarshalJSON
 	MarshalText = defaultMarshalText
 
-	// NOTE: We are not implementing text unmarshaller for safety.
+	// NOTE: We are not implementing text unmarshaler for safety.
 )
 
 var (
