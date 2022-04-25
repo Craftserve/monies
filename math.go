@@ -2,6 +2,8 @@ package money
 
 import "math"
 
+// @NOTE: Not sure if this file is really that needed
+
 func add(a, b int64) int64 {
 	return a + b
 }
