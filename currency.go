@@ -6,6 +6,8 @@ import (
 
 var ErrCurrencyNotFound = errors.New("currency not found")
 
+type CurrencyCode string
+
 // Currency represents currency with information how to format it
 type Currency struct {
 	Code        CurrencyCode
@@ -19,8 +21,8 @@ type Currency struct {
 
 type CurrenciesMap map[CurrencyCode]Currency
 
-func (c CurrenciesMap) CurrencyByNumericCode(code string) (result Currency, err error) {
-	for _, sc := range c {
+func CurrencyByNumericCode(code string) (result Currency, err error) {
+	for _, sc := range currencies {
 		if sc.NumericCode == code {
 			return sc, nil
 		}
@@ -29,8 +31,8 @@ func (c CurrenciesMap) CurrencyByNumericCode(code string) (result Currency, err 
 	return result, ErrCurrencyNotFound
 }
 
-func (c CurrenciesMap) CurrencyByCode(code CurrencyCode) (result Currency, err error) {
-	sc, ok := c[code]
+func CurrencyByCode(code CurrencyCode) (result Currency, err error) {
+	sc, ok := currencies[code]
 	if !ok {
 		return sc, ErrCurrencyNotFound
 	}
@@ -38,12 +40,7 @@ func (c CurrenciesMap) CurrencyByCode(code CurrencyCode) (result Currency, err e
 	return sc, nil
 }
 
-func (c CurrenciesMap) Add(currency Currency) CurrenciesMap {
-	c[currency.Code] = currency
-	return c
-}
-
-var Currencies = CurrenciesMap{
+var currencies = CurrenciesMap{
 	MKD: {Decimal: ".", Thousand: ",", Code: MKD, Fraction: 2, NumericCode: "807", Grapheme: "\u0434\u0435\u043d", Template: "$1"},
 	MWK: {Decimal: ".", Thousand: ",", Code: MWK, Fraction: 2, NumericCode: "454", Grapheme: "MK", Template: "$1"},
 	BGN: {Decimal: ".", Thousand: ",", Code: BGN, Fraction: 2, NumericCode: "975", Grapheme: "\u043b\u0432", Template: "$1"},
@@ -214,30 +211,6 @@ var Currencies = CurrenciesMap{
 	IRR: {Decimal: ".", Thousand: ",", Code: IRR, Fraction: 2, NumericCode: "364", Grapheme: "\ufdfc", Template: "1 $"},
 	SBD: {Decimal: ".", Thousand: ",", Code: SBD, Fraction: 2, NumericCode: "090", Grapheme: "$", Template: "$1"},
 }
-
-// AddCurrency lets you insert or update currency in Currencies list.
-func AddCurrency(code CurrencyCode, Grapheme, Template, Decimal, Thousand string, Fraction int, numericCode string) Currency {
-	c := Currency{
-		Code:        code,
-		Grapheme:    Grapheme,
-		Template:    Template,
-		Decimal:     Decimal,
-		Thousand:    Thousand,
-		Fraction:    Fraction,
-		NumericCode: numericCode,
-	}
-
-	Currencies.Add(c)
-
-	return c
-}
-
-// GetCurrency returns the currency given the code.
-func GetCurrency(code CurrencyCode) (result Currency, err error) {
-	return Currencies.CurrencyByCode(code)
-}
-
-type CurrencyCode string
 
 const (
 	KRW CurrencyCode = "KRW"

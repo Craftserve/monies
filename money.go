@@ -10,54 +10,12 @@ import (
 	"strings"
 )
 
-//   To overwrite marshallers and unmarshallers, use the following code:
-//   money.UnmarshalJSON = func (m *Money, b []byte) error { ... }
-//   money.MarshalJSON = func (m Money) ([]byte, error) { ... }
-var (
-	// UnmarshalJSON is injection point of json.Unmarshaller for money.Money
-	UnmarshalJSON = defaultUnmarshalJSON
-	// MarshalJSON  is injection point of json.Marshaller for money.Money
-	MarshalJSON = defaultMarshalJSON
-	MarshalText = defaultMarshalText
-
-	// NOTE: We are not implementing text unmarshaler for safety.
-)
-
 var (
 	ErrCurrencyMismatch = errors.New("currencies mismatched")
 	ErrNegativeSplit    = errors.New("split be must be positive")
 	ErrNoRatios         = errors.New("no ratios provided")
+	ErrInvalidText      = errors.New("invalid text")
 )
-
-func defaultUnmarshalJSON(m *Money, b []byte) error {
-	type moneyJSON struct {
-		Currency CurrencyCode `json:"currency"`
-		Amount   int64        `json:"amount"`
-	}
-
-	var ref moneyJSON
-	err := json.Unmarshal(b, &ref)
-	if err != nil {
-		return err
-	}
-
-	money, err := New(ref.Amount, ref.Currency)
-	if err != nil {
-		return err
-	}
-
-	*m = money
-	return nil
-}
-
-func defaultMarshalJSON(m Money) ([]byte, error) {
-	buff := bytes.NewBufferString(fmt.Sprintf(`{"amount": %d, "currency": "%s"}`, m.Amount(), m.Currency().Code))
-	return buff.Bytes(), nil
-}
-
-func defaultMarshalText(m Money) ([]byte, error) {
-	return []byte(m.Display()), nil
-}
 
 // Money represents a monetary value
 type Money struct {
@@ -67,7 +25,7 @@ type Money struct {
 
 // New creates and returns new instance of Money.
 func New(amount int64, code CurrencyCode) (m Money, err error) {
-	currency, err := GetCurrency(code)
+	currency, err := CurrencyByCode(code)
 	if err != nil {
 		return m, ErrCurrencyNotFound
 	}
@@ -86,7 +44,7 @@ func (m Money) Amount() int64 {
 	return m.amount
 }
 
-func (m Money) Display() string {
+func (m Money) String() string {
 	// Work with absolute amount value
 	sa := strconv.FormatInt(absolute(m.amount), 10)
 	c := m.currency
@@ -124,20 +82,81 @@ func (m Money) AsMajorUnits() float64 {
 }
 
 func (m *Money) UnmarshalJSON(b []byte) error {
-	return UnmarshalJSON(m, b)
+	type moneyJSON struct {
+		Currency CurrencyCode `json:"currency"`
+		Amount   int64        `json:"amount"`
+	}
+
+	var ref moneyJSON
+	err := json.Unmarshal(b, &ref)
+	if err != nil {
+		return err
+	}
+
+	money, err := New(ref.Amount, ref.Currency)
+	if err != nil {
+		return err
+	}
+
+	*m = money
+	return nil
+}
+func (m *Money) UnmarshalText(text []byte) error {
+	if len(text) < 5 {
+		return ErrInvalidText
+	}
+
+	currencyCode := strings.TrimSpace(string(text)[len(text)-4:])
+	amountStr := string(text[:len(text)-4])
+
+	currency, err := CurrencyByCode(CurrencyCode(currencyCode))
+	if err != nil {
+		return err
+	}
+
+	majorUnitsStr := strings.Split(amountStr, currency.Decimal)[0]
+	minorUnitsStr := strings.Split(amountStr, currency.Decimal)[1]
+
+	majorUnits, err := strconv.ParseInt(majorUnitsStr, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	minorUnits, err := strconv.ParseInt(minorUnitsStr, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	var amount = majorUnits*int64(math.Pow10(currency.Fraction)) + minorUnits
+
+	money, _ := New(amount, CurrencyCode(currencyCode))
+
+	*m = money
+
+	return nil
 }
 
 func (m Money) MarshalText() ([]byte, error) {
-	return MarshalText(m)
+	var majorUnits = m.amount / int64(math.Pow10(m.currency.Fraction))
+	var majorUnitsStr = strconv.FormatInt(majorUnits, 10)
+
+	var minorUnits = m.amount - (majorUnits * int64(math.Pow10(m.currency.Fraction)))
+	var minorUnitsStr = strconv.FormatInt(minorUnits, 10)
+
+	if len(minorUnitsStr) <= m.currency.Fraction {
+		minorUnitsStr = strings.Repeat("0", m.currency.Fraction-len(minorUnitsStr)) + minorUnitsStr
+	}
+
+	return []byte(fmt.Sprintf(`%s%s%s %s`, majorUnitsStr, m.currency.Decimal, minorUnitsStr, m.currency.Code)), nil
 }
 
 func (m Money) MarshalJSON() ([]byte, error) {
-	return MarshalJSON(m)
+	buff := bytes.NewBufferString(fmt.Sprintf(`{"amount": %d, "currency": "%s"}`, m.Amount(), m.Currency().Code))
+	return buff.Bytes(), nil
 }
 
-// SameCurrency check if given Money has same currency
 func (m Money) SameCurrency(om Money) bool {
-	return m.currency.Code == om.currency.Code
+	return m.currency == om.currency
 }
 
 func (m Money) assertSameCurrency(om Money) error {
@@ -148,17 +167,6 @@ func (m Money) assertSameCurrency(om Money) error {
 	return nil
 }
 
-func (m Money) compare(om Money) int {
-	switch {
-	case m.amount > om.amount:
-		return 1
-	case m.amount < om.amount:
-		return -1
-	}
-
-	return 0
-}
-
 // Compare methods
 
 func (m Money) Equals(om Money) (bool, error) {
@@ -166,39 +174,15 @@ func (m Money) Equals(om Money) (bool, error) {
 		return false, err
 	}
 
-	return m.compare(om) == 0, nil
+	return m.amount == om.amount, nil
 }
 
-func (m Money) GreaterThan(om Money) (bool, error) {
+func (m Money) Less(om Money) (bool, error) {
 	if err := m.assertSameCurrency(om); err != nil {
 		return false, err
 	}
 
-	return m.compare(om) == 1, nil
-}
-
-func (m Money) GreaterThanOrEqual(om Money) (bool, error) {
-	if err := m.assertSameCurrency(om); err != nil {
-		return false, err
-	}
-
-	return m.compare(om) >= 0, nil
-}
-
-func (m Money) LessThan(om Money) (bool, error) {
-	if err := m.assertSameCurrency(om); err != nil {
-		return false, err
-	}
-
-	return m.compare(om) == -1, nil
-}
-
-func (m Money) LessThanOrEqual(om Money) (bool, error) {
-	if err := m.assertSameCurrency(om); err != nil {
-		return false, err
-	}
-
-	return m.compare(om) <= 0, nil
+	return m.amount < om.amount, nil
 }
 
 // Asserts
@@ -222,7 +206,10 @@ func (m Money) Absolute() Money {
 }
 
 func (m Money) Negative() Money {
-	return Money{amount: negative(m.amount), currency: m.currency}
+	if m.amount < 0 {
+		return m
+	}
+	return Money{amount: -1 * m.amount, currency: m.currency}
 }
 
 func (m Money) Add(om Money) (Money, error) {
@@ -230,7 +217,7 @@ func (m Money) Add(om Money) (Money, error) {
 		return om, err
 	}
 
-	return Money{amount: add(m.amount, om.amount), currency: m.currency}, nil
+	return Money{amount: m.amount + om.amount, currency: m.currency}, nil
 }
 
 func (m Money) Subtract(om Money) (Money, error) {
@@ -238,11 +225,11 @@ func (m Money) Subtract(om Money) (Money, error) {
 		return om, err
 	}
 
-	return Money{amount: subtract(m.amount, om.amount), currency: m.currency}, nil
+	return Money{amount: m.amount - om.amount, currency: m.currency}, nil
 }
 
 func (m Money) Multiply(mul int64) Money {
-	return Money{amount: multiply(m.amount, mul), currency: m.currency}
+	return Money{amount: m.amount * mul, currency: m.currency}
 }
 
 func (m Money) Round() Money {
@@ -258,7 +245,7 @@ func (m Money) Split(n int) ([]Money, error) {
 		return nil, ErrNegativeSplit
 	}
 
-	a := divide(m.amount, int64(n))
+	a := m.amount / int64(n)
 	ms := make([]Money, n)
 
 	for i := 0; i < n; i++ {
@@ -274,7 +261,7 @@ func (m Money) Split(n int) ([]Money, error) {
 		v = -1
 	}
 	for p := 0; l != 0; p++ {
-		ms[p].amount = add(ms[p].amount, v)
+		ms[p].amount = ms[p].amount + v
 		l--
 	}
 
@@ -315,7 +302,7 @@ func (m Money) Allocate(rs ...int) ([]Money, error) {
 	}
 
 	for p := 0; lo != 0; p++ {
-		ms[p].amount = add(ms[p].amount, sub)
+		ms[p].amount = ms[p].amount + sub
 		lo -= sub
 	}
 

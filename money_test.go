@@ -1,7 +1,6 @@
 package monies_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/Craftserve/monies"
@@ -108,57 +107,7 @@ func TestEquals(t *testing.T) {
 	}
 }
 
-func TestGreaterThan(t *testing.T) {
-	testCases := []struct {
-		Name        string
-		Money       monies.Money
-		OtherMoney  monies.Money
-		Expected    bool
-		ExpectedErr error
-	}{
-		{"SUCCESS", MustNew(1000, monies.EUR), MustNew(100, monies.EUR), true, nil},
-		{"FAIL_OTHER_CURRENCIES", MustNew(100, monies.USD), MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
-		{"FAIL_OTHER_AMOUNTS", MustNew(50, monies.EUR), MustNew(100, monies.EUR), false, nil},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.Name, func(t *testing.T) {
-			equals, err := tC.Money.GreaterThan(tC.OtherMoney)
-			if tC.ExpectedErr == nil {
-				assert.Equal(t, tC.Expected, equals)
-			}
-
-			assert.ErrorIs(t, tC.ExpectedErr, err)
-		})
-	}
-}
-func TestGreaterThanOrEqual(t *testing.T) {
-	testCases := []struct {
-		Name        string
-		Money       monies.Money
-		OtherMoney  monies.Money
-		Expected    bool
-		ExpectedErr error
-	}{
-		{"SUCCESS_GREATER", MustNew(1000, monies.EUR), MustNew(100, monies.EUR), true, nil},
-		{"SUCCESS_EQUAL", MustNew(100, monies.EUR), MustNew(100, monies.EUR), true, nil},
-		{"FAIL_OTHER_CURRENCIES", MustNew(100, monies.USD), MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
-		{"FAIL_OTHER_AMOUNTS", MustNew(50, monies.EUR), MustNew(100, monies.EUR), false, nil},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.Name, func(t *testing.T) {
-			equals, err := tC.Money.GreaterThanOrEqual(tC.OtherMoney)
-			if tC.ExpectedErr == nil {
-				assert.Equal(t, tC.Expected, equals)
-			}
-
-			assert.ErrorIs(t, tC.ExpectedErr, err)
-		})
-	}
-}
-
-func TestLessThan(t *testing.T) {
+func TestLess(t *testing.T) {
 	testCases := []struct {
 		Name        string
 		Money       monies.Money
@@ -173,7 +122,7 @@ func TestLessThan(t *testing.T) {
 
 	for _, tC := range testCases {
 		t.Run(tC.Name, func(t *testing.T) {
-			equals, err := tC.Money.LessThan(tC.OtherMoney)
+			equals, err := tC.Money.Less(tC.OtherMoney)
 			if tC.ExpectedErr == nil {
 				assert.Equal(t, tC.Expected, equals)
 			}
@@ -183,31 +132,6 @@ func TestLessThan(t *testing.T) {
 	}
 }
 
-func TestLessThanOrEqual(t *testing.T) {
-	testCases := []struct {
-		Name        string
-		Money       monies.Money
-		OtherMoney  monies.Money
-		Expected    bool
-		ExpectedErr error
-	}{
-		{"SUCCESS_LESS", MustNew(50, monies.EUR), MustNew(100, monies.EUR), true, nil},
-		{"SUCCESS_EQUAL", MustNew(50, monies.EUR), MustNew(50, monies.EUR), true, nil},
-		{"FAIL_OTHER_CURRENCIES", MustNew(100, monies.USD), MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
-		{"FAIL_OTHER_AMOUNTS", MustNew(150, monies.EUR), MustNew(100, monies.EUR), false, nil},
-	}
-
-	for _, tC := range testCases {
-		t.Run(tC.Name, func(t *testing.T) {
-			equals, err := tC.Money.LessThanOrEqual(tC.OtherMoney)
-			if tC.ExpectedErr == nil {
-				assert.Equal(t, tC.Expected, equals)
-			}
-
-			assert.ErrorIs(t, tC.ExpectedErr, err)
-		})
-	}
-}
 func TestIsZero(t *testing.T) {
 	testCases := []struct {
 		Name     string
@@ -376,8 +300,6 @@ func TestMultiply(t *testing.T) {
 }
 
 func TestRound(t *testing.T) {
-	monies.AddCurrency("TEST_EXPONENTIAL", "*", "$1", ".", ",", 3, "0")
-
 	testCases := []struct {
 		Name     string
 		Money    monies.Money
@@ -390,7 +312,6 @@ func TestRound(t *testing.T) {
 		{"0_0", MustNew(0, monies.EUR), 0},
 		{"-1_0", MustNew(-1, monies.EUR), 0},
 		{"-75_-100", MustNew(-75, monies.EUR), -100},
-		{"TEST_EXPONENTIAL", MustNew(12555, monies.CurrencyCode("TEST_EXPONENTIAL")), 13000},
 	}
 
 	for _, tC := range testCases {
@@ -481,14 +402,12 @@ func TestMoneyDisplay(t *testing.T) {
 	}
 
 	for _, tC := range testCases {
-		display := tC.m.Display()
+		display := tC.m.String()
 		assert.Equal(t, tC.expected, display)
 	}
 }
 
 func TestAsMajorUnits(t *testing.T) {
-	monies.AddCurrency("TEST", "T$", "1 $", ".", ",", 0, "0")
-
 	testCases := []struct {
 		m        monies.Money
 		expected float64
@@ -496,7 +415,7 @@ func TestAsMajorUnits(t *testing.T) {
 		{MustNew(100, monies.GBP), 1.00},
 		{MustNew(-100, monies.GBP), -1.00},
 		{MustNew(0, monies.GBP), 0},
-		{MustNew(1, "TEST"), 1},
+		{MustNew(0, monies.HUF), 0},
 	}
 
 	for _, tC := range testCases {
@@ -519,7 +438,7 @@ func TestMoney_Amount(t *testing.T) {
 	assert.Equal(t, int64(100), pound.Amount())
 }
 
-func TestDefaultMarshal(t *testing.T) {
+func TestMarshalJSON(t *testing.T) {
 	given, err := monies.New(12345, monies.IQD)
 	assert.NoError(t, err)
 	expected := `{"amount":12345,"currency":"IQD"}`
@@ -531,7 +450,7 @@ func TestDefaultMarshal(t *testing.T) {
 	}
 
 	if string(b) != expected {
-		t.Errorf("Expected %s got %s", expected, string(b))
+		t.Errorf("Input %s got %s", expected, string(b))
 	}
 
 	given = monies.Money{}
@@ -544,32 +463,11 @@ func TestDefaultMarshal(t *testing.T) {
 	}
 
 	if string(b) != expected {
-		t.Errorf("Expected %s got %s", expected, string(b))
+		t.Errorf("Input %s got %s", expected, string(b))
 	}
 }
 
-func TestCustomMarshal(t *testing.T) {
-	given, err := monies.New(12345, monies.IQD)
-	assert.NoError(t, err)
-
-	expected := `{"amount":12345,"currency_code":"IQD","currency_fraction":3}`
-	monies.MarshalJSON = func(m monies.Money) ([]byte, error) {
-		buff := bytes.NewBufferString(fmt.Sprintf(`{"amount": %d, "currency_code": "%s", "currency_fraction": %d}`, m.Amount(), m.Currency().Code, m.Currency().Fraction))
-		return buff.Bytes(), nil
-	}
-
-	b, err := json.Marshal(given)
-
-	if err != nil {
-		t.Error(err)
-	}
-
-	if string(b) != expected {
-		t.Errorf("Expected %s got %s", expected, string(b))
-	}
-}
-
-func TestDefaultUnmarshal(t *testing.T) {
+func TestUnmarshalJSON(t *testing.T) {
 	type testCase struct {
 		Name          string
 		Input         []byte
@@ -623,34 +521,6 @@ func TestDefaultUnmarshal(t *testing.T) {
 	}
 }
 
-func TestCustomUnmarshal(t *testing.T) {
-	given := `{"amount": 10012, "currency_code":"USD", "currency_fraction":2}`
-	expected := "$100.12"
-	monies.UnmarshalJSON = func(m *monies.Money, b []byte) error {
-		data := make(map[string]interface{})
-		err := json.Unmarshal(b, &data)
-		if err != nil {
-			return err
-		}
-
-		ref, err := monies.New(int64(data["amount"].(float64)), monies.CurrencyCode(data["currency_code"].(string)))
-		require.NoError(t, err)
-
-		*m = ref
-		return nil
-	}
-
-	var m monies.Money
-	err := json.Unmarshal([]byte(given), &m)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if m.Display() != expected {
-		t.Errorf("Expected %s got %s", expected, m.Display())
-	}
-}
-
 func TestTextMarshaller(t *testing.T) {
 	type testCase struct {
 		Name     string
@@ -662,7 +532,28 @@ func TestTextMarshaller(t *testing.T) {
 		{
 			Name:     "SUCCESS",
 			Input:    MustNew(100, monies.USD),
-			Expected: "$1.00",
+			Expected: "1.00 USD",
+		},
+		{
+			Name:     "SUCCESS",
+			Input:    MustNew(150, monies.USD),
+			Expected: "1.50 USD",
+		},
+		{
+			Name:     "SUCCESS",
+			Input:    MustNew(1000, monies.USD),
+			Expected: "10.00 USD",
+		},
+
+		{
+			Name:     "SUCCESS",
+			Input:    MustNew(10000, monies.USD),
+			Expected: "100.00 USD",
+		},
+		{
+			Name:     "SUCCESS",
+			Input:    MustNew(10000, monies.VND),
+			Expected: "10000.0 VND",
 		},
 	}
 
@@ -674,5 +565,89 @@ func TestTextMarshaller(t *testing.T) {
 			assert.Equal(t, tC.Expected, string(result))
 		})
 	}
+}
 
+func TestTextUnmarshal(t *testing.T) {
+	type testCase struct {
+		Name         string
+		Expected     monies.Money
+		Input        string
+		ExpectedFail bool
+	}
+
+	var testCases = []testCase{
+		{
+			Name:         "SUCCESS",
+			Expected:     MustNew(100, monies.USD),
+			Input:        "1.00 USD",
+			ExpectedFail: false,
+		},
+		{
+			Name:         "SUCCESS",
+			Expected:     MustNew(150, monies.USD),
+			Input:        "1.50 USD",
+			ExpectedFail: false,
+		},
+		{
+			Name:         "SUCCESS",
+			Expected:     MustNew(100, monies.USD),
+			Input:        "1.00 USD",
+			ExpectedFail: false,
+		},
+		{
+			Name:         "SUCCESS",
+			Expected:     MustNew(1000, monies.USD),
+			Input:        "10.00 USD",
+			ExpectedFail: false,
+		},
+		{
+			Name:         "INVALID_TEXT",
+			Expected:     MustNew(0, monies.USD),
+			Input:        "",
+			ExpectedFail: true,
+		},
+		{
+			Name:         "SUCCESS",
+			Expected:     MustNew(10000, monies.USD),
+			Input:        "100.00 USD",
+			ExpectedFail: false,
+		},
+		{
+			Name:         "SUCCESS",
+			Expected:     MustNew(10000, monies.VND),
+			Input:        "10000.0 VND",
+			ExpectedFail: false,
+		},
+		{
+			Name:         "CURRENCY_NOT_FOUND",
+			Expected:     MustNew(10000, monies.VND),
+			Input:        "10000.0 UUU",
+			ExpectedFail: true,
+		},
+
+		{
+			Name:         "WRONG_MINOR",
+			Expected:     MustNew(10000, monies.VND),
+			Input:        "10000.NULL USD",
+			ExpectedFail: true,
+		},
+		{
+			Name:         "WRONG_MAJOR",
+			Expected:     MustNew(10000, monies.VND),
+			Input:        "NULL.0 USD",
+			ExpectedFail: true,
+		},
+	}
+
+	for _, tC := range testCases {
+		t.Run(tC.Name, func(t *testing.T) {
+
+			var m monies.Money
+			err := m.UnmarshalText([]byte(tC.Input))
+			if !tC.ExpectedFail {
+				assert.Equal(t, tC.Expected, m)
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
