@@ -3,21 +3,14 @@ package monies_test
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/Craftserve/monies"
+
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
-
-func MustNew(amount int64, code monies.CurrencyCode) monies.Money {
-	m, err := monies.New(amount, code)
-	if err != nil {
-		panic(err)
-	}
-
-	return m
-}
 
 func TestNew(t *testing.T) {
 	type testCase struct {
@@ -90,9 +83,9 @@ func TestEquals(t *testing.T) {
 		Expected    bool
 		ExpectedErr error
 	}{
-		{"SUCCESS", MustNew(100, monies.EUR), MustNew(100, monies.EUR), true, nil},
-		{"FAIL_OTHER_CURRENCIES", MustNew(100, monies.USD), MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
-		{"FAIL_OTHER_AMOUNTS", MustNew(50, monies.EUR), MustNew(100, monies.EUR), false, nil},
+		{"SUCCESS", monies.MustNew(100, monies.EUR), monies.MustNew(100, monies.EUR), true, nil},
+		{"FAIL_OTHER_CURRENCIES", monies.MustNew(100, monies.USD), monies.MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
+		{"FAIL_OTHER_AMOUNTS", monies.MustNew(50, monies.EUR), monies.MustNew(100, monies.EUR), false, nil},
 	}
 
 	for _, tC := range testCases {
@@ -115,9 +108,9 @@ func TestLess(t *testing.T) {
 		Expected    bool
 		ExpectedErr error
 	}{
-		{"SUCCESS", MustNew(50, monies.EUR), MustNew(100, monies.EUR), true, nil},
-		{"FAIL_OTHER_CURRENCIES", MustNew(100, monies.USD), MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
-		{"FAIL_OTHER_AMOUNTS", MustNew(150, monies.EUR), MustNew(100, monies.EUR), false, nil},
+		{"SUCCESS", monies.MustNew(50, monies.EUR), monies.MustNew(100, monies.EUR), true, nil},
+		{"FAIL_OTHER_CURRENCIES", monies.MustNew(100, monies.USD), monies.MustNew(100, monies.EUR), false, monies.ErrCurrencyMismatch},
+		{"FAIL_OTHER_AMOUNTS", monies.MustNew(150, monies.EUR), monies.MustNew(100, monies.EUR), false, nil},
 	}
 
 	for _, tC := range testCases {
@@ -138,8 +131,8 @@ func TestIsZero(t *testing.T) {
 		Money    monies.Money
 		Expected bool
 	}{
-		{"SUCCESS", MustNew(0, monies.EUR), true},
-		{"NOT_ZERO", MustNew(1, monies.USD), false},
+		{"SUCCESS", monies.MustNew(0, monies.EUR), true},
+		{"NOT_ZERO", monies.MustNew(1, monies.USD), false},
 	}
 
 	for _, tC := range testCases {
@@ -156,9 +149,9 @@ func TestIsNegative(t *testing.T) {
 		Money    monies.Money
 		Expected bool
 	}{
-		{"SUCCESS", MustNew(-1, monies.EUR), true},
-		{"POSITIVE", MustNew(1, monies.EUR), false},
-		{"ZERO", MustNew(0, monies.EUR), false},
+		{"SUCCESS", monies.MustNew(-1, monies.EUR), true},
+		{"POSITIVE", monies.MustNew(1, monies.EUR), false},
+		{"ZERO", monies.MustNew(0, monies.EUR), false},
 	}
 
 	for _, tC := range testCases {
@@ -175,9 +168,9 @@ func TestIsPositive(t *testing.T) {
 		Money    monies.Money
 		Expected bool
 	}{
-		{"SUCCESS", MustNew(1, monies.EUR), true},
-		{"NEGATIVE", MustNew(-1, monies.EUR), false},
-		{"ZERO", MustNew(0, monies.EUR), false},
+		{"SUCCESS", monies.MustNew(1, monies.EUR), true},
+		{"NEGATIVE", monies.MustNew(-1, monies.EUR), false},
+		{"ZERO", monies.MustNew(0, monies.EUR), false},
 	}
 
 	for _, tC := range testCases {
@@ -194,9 +187,9 @@ func TestAbsolute(t *testing.T) {
 		Money    monies.Money
 		Expected int64
 	}{
-		{"POSITIVE", MustNew(1, monies.EUR), 1},
-		{"NEGATIVE", MustNew(-1, monies.EUR), 1},
-		{"ZERO", MustNew(0, monies.EUR), 0},
+		{"POSITIVE", monies.MustNew(1, monies.EUR), 1},
+		{"NEGATIVE", monies.MustNew(-1, monies.EUR), 1},
+		{"ZERO", monies.MustNew(0, monies.EUR), 0},
 	}
 
 	for _, tC := range testCases {
@@ -214,9 +207,9 @@ func TestNegative(t *testing.T) {
 		Money    monies.Money
 		Expected int64
 	}{
-		{"POSITIVE", MustNew(1, monies.EUR), -1},
-		{"NEGATIVE", MustNew(-1, monies.EUR), -1},
-		{"ZERO", MustNew(0, monies.EUR), 0},
+		{"POSITIVE", monies.MustNew(1, monies.EUR), -1},
+		{"NEGATIVE", monies.MustNew(-1, monies.EUR), -1},
+		{"ZERO", monies.MustNew(0, monies.EUR), 0},
 	}
 
 	for _, tC := range testCases {
@@ -235,9 +228,9 @@ func TestAdd(t *testing.T) {
 		Expected    monies.Money
 		ExpectedErr error
 	}{
-		{"POSITIVE_POSITIVE", MustNew(50, monies.EUR), MustNew(100, monies.EUR), MustNew(150, monies.EUR), nil},
-		{"POSITIVE_NEGATIVE", MustNew(100, monies.EUR), MustNew(-50, monies.EUR), MustNew(50, monies.EUR), nil},
-		{"CURRENCY_MISMATCH", MustNew(100, monies.EUR), MustNew(-50, monies.USD), MustNew(50, monies.USD), monies.ErrCurrencyMismatch},
+		{"POSITIVE_POSITIVE", monies.MustNew(50, monies.EUR), monies.MustNew(100, monies.EUR), monies.MustNew(150, monies.EUR), nil},
+		{"POSITIVE_NEGATIVE", monies.MustNew(100, monies.EUR), monies.MustNew(-50, monies.EUR), monies.MustNew(50, monies.EUR), nil},
+		{"CURRENCY_MISMATCH", monies.MustNew(100, monies.EUR), monies.MustNew(-50, monies.USD), monies.MustNew(50, monies.USD), monies.ErrCurrencyMismatch},
 	}
 
 	for _, tC := range testCases {
@@ -262,9 +255,9 @@ func TestSubstract(t *testing.T) {
 		Expected    monies.Money
 		ExpectedErr error
 	}{
-		{"POSITIVE_POSITIVE", MustNew(100, monies.EUR), MustNew(100, monies.EUR), MustNew(0, monies.EUR), nil},
-		{"POSITIVE_NEGATIVE", MustNew(100, monies.EUR), MustNew(-50, monies.EUR), MustNew(150, monies.EUR), nil},
-		{"CURRENCY_MISMATCH", MustNew(100, monies.EUR), MustNew(-50, monies.USD), MustNew(50, monies.USD), monies.ErrCurrencyMismatch},
+		{"POSITIVE_POSITIVE", monies.MustNew(100, monies.EUR), monies.MustNew(100, monies.EUR), monies.MustNew(0, monies.EUR), nil},
+		{"POSITIVE_NEGATIVE", monies.MustNew(100, monies.EUR), monies.MustNew(-50, monies.EUR), monies.MustNew(150, monies.EUR), nil},
+		{"CURRENCY_MISMATCH", monies.MustNew(100, monies.EUR), monies.MustNew(-50, monies.USD), monies.MustNew(50, monies.USD), monies.ErrCurrencyMismatch},
 	}
 
 	for _, tC := range testCases {
@@ -285,9 +278,9 @@ func TestMultiply(t *testing.T) {
 		Multiplier int64
 		Expected   monies.Money
 	}{
-		{"BY_ONE", MustNew(100, monies.EUR), 1, MustNew(100, monies.EUR)},
-		{"BY_ZERO", MustNew(100, monies.EUR), 0, MustNew(0, monies.EUR)},
-		{"SUCCESS", MustNew(100, monies.EUR), 2, MustNew(200, monies.EUR)},
+		{"BY_ONE", monies.MustNew(100, monies.EUR), 1, monies.MustNew(100, monies.EUR)},
+		{"BY_ZERO", monies.MustNew(100, monies.EUR), 0, monies.MustNew(0, monies.EUR)},
+		{"SUCCESS", monies.MustNew(100, monies.EUR), 2, monies.MustNew(200, monies.EUR)},
 	}
 
 	for _, tC := range testCases {
@@ -305,13 +298,13 @@ func TestRound(t *testing.T) {
 		Money    monies.Money
 		Expected int64
 	}{
-		{"125_100", MustNew(125, monies.EUR), 100},
-		{"175_200", MustNew(175, monies.EUR), 200},
-		{"349_300", MustNew(349, monies.EUR), 300},
-		{"351_400", MustNew(351, monies.EUR), 400},
-		{"0_0", MustNew(0, monies.EUR), 0},
-		{"-1_0", MustNew(-1, monies.EUR), 0},
-		{"-75_-100", MustNew(-75, monies.EUR), -100},
+		{"125_100", monies.MustNew(125, monies.EUR), 100},
+		{"175_200", monies.MustNew(175, monies.EUR), 200},
+		{"349_300", monies.MustNew(349, monies.EUR), 300},
+		{"351_400", monies.MustNew(351, monies.EUR), 400},
+		{"0_0", monies.MustNew(0, monies.EUR), 0},
+		{"-1_0", monies.MustNew(-1, monies.EUR), 0},
+		{"-75_-100", monies.MustNew(-75, monies.EUR), -100},
 	}
 
 	for _, tC := range testCases {
@@ -330,13 +323,13 @@ func TestMoneySplit(t *testing.T) {
 		Expected    []int64
 		ExpectedErr error
 	}{
-		{MustNew(100, monies.EUR), 3, []int64{34, 33, 33}, nil},
-		{MustNew(100, monies.EUR), 4, []int64{25, 25, 25, 25}, nil},
-		{MustNew(5, monies.EUR), 3, []int64{2, 2, 1}, nil},
-		{MustNew(-101, monies.EUR), 4, []int64{-26, -25, -25, -25}, nil},
-		{MustNew(-101, monies.EUR), 4, []int64{-26, -25, -25, -25}, nil},
-		{MustNew(-2, monies.EUR), 3, []int64{-1, -1, 0}, nil},
-		{MustNew(-2, monies.EUR), -1, []int64{-1, -1, 0}, monies.ErrNegativeSplit},
+		{monies.MustNew(100, monies.EUR), 3, []int64{34, 33, 33}, nil},
+		{monies.MustNew(100, monies.EUR), 4, []int64{25, 25, 25, 25}, nil},
+		{monies.MustNew(5, monies.EUR), 3, []int64{2, 2, 1}, nil},
+		{monies.MustNew(-101, monies.EUR), 4, []int64{-26, -25, -25, -25}, nil},
+		{monies.MustNew(-101, monies.EUR), 4, []int64{-26, -25, -25, -25}, nil},
+		{monies.MustNew(-2, monies.EUR), 3, []int64{-1, -1, 0}, nil},
+		{monies.MustNew(-2, monies.EUR), -1, []int64{-1, -1, 0}, monies.ErrNegativeSplit},
 	}
 
 	for index, tC := range testCases {
@@ -363,12 +356,12 @@ func TestMoneyAllocate(t *testing.T) {
 		Expected    []int64
 		ExpectedErr error
 	}{
-		{MustNew(100, monies.EUR), []int{50, 50}, []int64{50, 50}, nil},
-		{MustNew(100, monies.EUR), []int{30, 30, 30}, []int64{34, 33, 33}, nil},
-		{MustNew(200, monies.EUR), []int{25, 25, 50}, []int64{50, 50, 100}, nil},
-		{MustNew(5, monies.EUR), []int{50, 25, 25}, []int64{3, 1, 1}, nil},
-		{MustNew(-101, monies.EUR), []int{50, 50}, []int64{-51, -50}, nil},
-		{MustNew(-101, monies.EUR), []int{}, []int64{-26, -25}, monies.ErrNoRatios},
+		{monies.MustNew(100, monies.EUR), []int{50, 50}, []int64{50, 50}, nil},
+		{monies.MustNew(100, monies.EUR), []int{30, 30, 30}, []int64{34, 33, 33}, nil},
+		{monies.MustNew(200, monies.EUR), []int{25, 25, 50}, []int64{50, 50, 100}, nil},
+		{monies.MustNew(5, monies.EUR), []int{50, 25, 25}, []int64{3, 1, 1}, nil},
+		{monies.MustNew(-101, monies.EUR), []int{50, 50}, []int64{-51, -50}, nil},
+		{monies.MustNew(-101, monies.EUR), []int{}, []int64{-26, -25}, monies.ErrNoRatios},
 	}
 
 	for index, tC := range testCases {
@@ -394,11 +387,11 @@ func TestMoneyDisplay(t *testing.T) {
 		m        monies.Money
 		expected string
 	}{
-		{MustNew(100, monies.GBP), "£1.00"},
-		{MustNew(100, monies.AED), "1.00 .\u062f.\u0625"},
-		{MustNew(-100, monies.GBP), "-£1.00"},
-		{MustNew(10, monies.GBP), "£0.10"},
-		{MustNew(100000, monies.GBP), "£1,000.00"},
+		{monies.MustNew(100, monies.GBP), "£1.00"},
+		{monies.MustNew(100, monies.AED), "1.00 .\u062f.\u0625"},
+		{monies.MustNew(-100, monies.GBP), "-£1.00"},
+		{monies.MustNew(10, monies.GBP), "£0.10"},
+		{monies.MustNew(100000, monies.GBP), "£1,000.00"},
 	}
 
 	for _, tC := range testCases {
@@ -412,10 +405,10 @@ func TestAsMajorUnits(t *testing.T) {
 		m        monies.Money
 		expected float64
 	}{
-		{MustNew(100, monies.GBP), 1.00},
-		{MustNew(-100, monies.GBP), -1.00},
-		{MustNew(0, monies.GBP), 0},
-		{MustNew(0, monies.HUF), 0},
+		{monies.MustNew(100, monies.GBP), 1.00},
+		{monies.MustNew(-100, monies.GBP), -1.00},
+		{monies.MustNew(0, monies.GBP), 0},
+		{monies.MustNew(0, monies.HUF), 0},
 	}
 
 	for _, tC := range testCases {
@@ -482,7 +475,7 @@ func TestUnmarshalJSON(t *testing.T) {
 			Input:         []byte(`{"amount": 100, "currency":"USD"}`),
 			UnexpectedErr: false,
 			ExpectedErr:   nil,
-			Expected:      MustNew(100, monies.USD),
+			Expected:      monies.MustNew(100, monies.USD),
 		},
 		{
 			Name:          "UNDEFINED_CURRENCY",
@@ -531,28 +524,28 @@ func TestTextMarshaller(t *testing.T) {
 	var testCases = []testCase{
 		{
 			Name:     "SUCCESS",
-			Input:    MustNew(100, monies.USD),
+			Input:    monies.MustNew(100, monies.USD),
 			Expected: "1.00 USD",
 		},
 		{
 			Name:     "SUCCESS",
-			Input:    MustNew(150, monies.USD),
+			Input:    monies.MustNew(150, monies.USD),
 			Expected: "1.50 USD",
 		},
 		{
 			Name:     "SUCCESS",
-			Input:    MustNew(1000, monies.USD),
+			Input:    monies.MustNew(1000, monies.USD),
 			Expected: "10.00 USD",
 		},
 
 		{
 			Name:     "SUCCESS",
-			Input:    MustNew(10000, monies.USD),
+			Input:    monies.MustNew(10000, monies.USD),
 			Expected: "100.00 USD",
 		},
 		{
 			Name:     "SUCCESS",
-			Input:    MustNew(10000, monies.VND),
+			Input:    monies.MustNew(10000, monies.VND),
 			Expected: "10000.0 VND",
 		},
 	}
@@ -578,62 +571,62 @@ func TestTextUnmarshal(t *testing.T) {
 	var testCases = []testCase{
 		{
 			Name:         "SUCCESS",
-			Expected:     MustNew(100, monies.USD),
+			Expected:     monies.MustNew(100, monies.USD),
 			Input:        "1.00 USD",
 			ExpectedFail: false,
 		},
 		{
 			Name:         "SUCCESS",
-			Expected:     MustNew(150, monies.USD),
+			Expected:     monies.MustNew(150, monies.USD),
 			Input:        "1.50 USD",
 			ExpectedFail: false,
 		},
 		{
 			Name:         "SUCCESS",
-			Expected:     MustNew(100, monies.USD),
+			Expected:     monies.MustNew(100, monies.USD),
 			Input:        "1.00 USD",
 			ExpectedFail: false,
 		},
 		{
 			Name:         "SUCCESS",
-			Expected:     MustNew(1000, monies.USD),
+			Expected:     monies.MustNew(1000, monies.USD),
 			Input:        "10.00 USD",
 			ExpectedFail: false,
 		},
 		{
 			Name:         "INVALID_TEXT",
-			Expected:     MustNew(0, monies.USD),
+			Expected:     monies.MustNew(0, monies.USD),
 			Input:        "",
 			ExpectedFail: true,
 		},
 		{
 			Name:         "SUCCESS",
-			Expected:     MustNew(10000, monies.USD),
+			Expected:     monies.MustNew(10000, monies.USD),
 			Input:        "100.00 USD",
 			ExpectedFail: false,
 		},
 		{
 			Name:         "SUCCESS",
-			Expected:     MustNew(10000, monies.VND),
+			Expected:     monies.MustNew(10000, monies.VND),
 			Input:        "10000.0 VND",
 			ExpectedFail: false,
 		},
 		{
 			Name:         "CURRENCY_NOT_FOUND",
-			Expected:     MustNew(10000, monies.VND),
+			Expected:     monies.MustNew(10000, monies.VND),
 			Input:        "10000.0 UUU",
 			ExpectedFail: true,
 		},
 
 		{
 			Name:         "WRONG_MINOR",
-			Expected:     MustNew(10000, monies.VND),
+			Expected:     monies.MustNew(10000, monies.VND),
 			Input:        "10000.NULL USD",
 			ExpectedFail: true,
 		},
 		{
 			Name:         "WRONG_MAJOR",
-			Expected:     MustNew(10000, monies.VND),
+			Expected:     monies.MustNew(10000, monies.VND),
 			Input:        "NULL.0 USD",
 			ExpectedFail: true,
 		},

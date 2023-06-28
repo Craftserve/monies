@@ -308,3 +308,13 @@ func (m Money) Allocate(rs ...int) ([]Money, error) {
 
 	return ms, nil
 }
+
+// It panics if error occurs.
+func MustNew(amount int64, code CurrencyCode) Money {
+	m, err := New(amount, code)
+	if err != nil {
+		panic(err)
+	}
+
+	return m
+}
