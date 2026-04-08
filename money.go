@@ -1,7 +1,6 @@
 package monies
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +8,15 @@ import (
 	"strconv"
 	"strings"
 )
+
+// MoneyJSON is the JSON wire format of Money. It exists as a separate
+// exported type so that reflection/AST-based introspection tools (e.g.
+// swaggo, jsonschema generators) can derive the correct schema — Money's
+// fields are unexported and thus invisible to such tools.
+type MoneyJSON struct {
+	Amount   int64        `json:"amount"`
+	Currency CurrencyCode `json:"currency"`
+}
 
 var (
 	ErrCurrencyMismatch = errors.New("currencies mismatched")
@@ -82,12 +90,7 @@ func (m Money) AsMajorUnits() float64 {
 }
 
 func (m *Money) UnmarshalJSON(b []byte) error {
-	type moneyJSON struct {
-		Currency CurrencyCode `json:"currency"`
-		Amount   int64        `json:"amount"`
-	}
-
-	var ref moneyJSON
+	var ref MoneyJSON
 	err := json.Unmarshal(b, &ref)
 	if err != nil {
 		return err
@@ -151,8 +154,10 @@ func (m Money) MarshalText() ([]byte, error) {
 }
 
 func (m Money) MarshalJSON() ([]byte, error) {
-	buff := bytes.NewBufferString(fmt.Sprintf(`{"amount": %d, "currency": "%s"}`, m.Amount(), m.Currency().Code))
-	return buff.Bytes(), nil
+	return json.Marshal(MoneyJSON{
+		Amount:   m.amount,
+		Currency: m.currency.Code,
+	})
 }
 
 func (m Money) SameCurrency(om Money) bool {
